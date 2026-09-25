@@ -34,6 +34,7 @@
     width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
     background: var(--input-bg); color: var(--text); font-size: 14px;
   }
+  @media (max-width: 560px) { input[type=text], input[type=password], input[type=number], select { font-size: 16px; } }
   input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; }
   .row { display: flex; gap: 14px; flex-wrap: wrap; }
   .row > div { flex: 1; min-width: 160px; margin-bottom: 12px; }
@@ -326,6 +327,7 @@ const STR = {
     statusDone: (n) => `Listo: ${n} prospectos encontrados.`,
     statusCpProgress: (i, n, cp) => `CP ${i}/${n} (${cp})`,
     errMissing: "Falta giro/categoría o código postal.",
+    errBadCp: (cp) => `"${cp}" no es un código postal. Escribe el giro en "Giro / categoría" y en "Código postal" solo códigos, ej. 45020.`,
     errRunStatus: (s) => `El run terminó con estado: ${s}`,
     errTimeout: "Tiempo de espera excedido (10 min).",
     errPrefix: "Error: ",
@@ -399,6 +401,7 @@ const STR = {
     statusDone: (n) => `Done: ${n} prospects found.`,
     statusCpProgress: (i, n, cp) => `ZIP ${i}/${n} (${cp})`,
     errMissing: "Missing category or ZIP code.",
+    errBadCp: (cp) => `"${cp}" is not a ZIP code. Type the category in "Category" and only codes in "ZIP code", e.g. 10001.`,
     errRunStatus: (s) => `Run finished with status: ${s}`,
     errTimeout: "Timeout exceeded (10 min).",
     errPrefix: "Error: ",
@@ -613,6 +616,12 @@ async function runSearch() {
   }
   if (mode === 'radius' && (!queryRaw || !postalCodes.length || !(radiusKm > 0))) {
     setStatus(t('errAddress'), 'error');
+    return;
+  }
+  // Todo código postal lleva al menos un número; sin eso casi seguro es texto en el campo equivocado.
+  const cpMalo = postalCodes.find(cp => !/\d/.test(cp));
+  if (cpMalo) {
+    setStatus(t('errBadCp', cpMalo), 'error');
     return;
   }
 
