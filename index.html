@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="Maps Radio">
 <script src="nacl-fast.min.js"></script>
 <script src="licencia-web.js"></script>
-<script>if (!PMR.estado().ok) location.replace('activacion.html');</script>
+<script>try { if (!PMR.estado().ok) throw 0; } catch (e) { location.replace('activacion.html'); }</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prospectos Maps Radio</title>
 <style>

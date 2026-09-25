@@ -79,6 +79,10 @@ function mostrar(info) {
 }
 if (WEB) mostrar({ equipo: PMR.idTexto(), mensaje: PMR.estado().mensaje });
 else window.addEventListener('pywebviewready', async () => mostrar(await pywebview.api.info()));
+// Si a los 5 s no hay ID, algo no cargó (p. ej. sin internet): se avisa en vez de dejar "…".
+setTimeout(() => {
+  if ($('equipo').textContent === '…') mostrar({ equipo: '…', mensaje: 'No se pudo cargar la verificación de licencia. Revisa tu conexión y vuelve a abrir la app.' });
+}, 5000);
 
 $('copiar').addEventListener('click', async () => {
   await navigator.clipboard.writeText($('equipo').textContent);
