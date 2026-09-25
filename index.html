@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" href="icono.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Maps Radio">
+<script src="nacl-fast.min.js"></script>
+<script src="licencia-web.js"></script>
+<script>if (!PMR.estado().ok) location.replace('activacion.html');</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prospectos Maps Radio</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --border: #2a2e38; --text: #e7e9ee;
+    --muted: #9aa1b0; --accent: #4f8cff; --accent-hover: #6ea0ff;
+    --danger: #ff5d5d; --ok: #35c48c; --input-bg: #10131a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--text); padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 16px;
+  }
+  .panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 14px; }
+  label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+  input[type=text], input[type=password], input[type=number], select {
+    width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--input-bg); color: var(--text); font-size: 14px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 160px; margin-bottom: 12px; }
+  .field { margin-bottom: 12px; }
+  .token-row { display: flex; gap: 8px; align-items: stretch; }
+  .token-row .field-wrap { position: relative; flex: 1; }
+  .token-row input { padding-right: 38px; }
+  .eye-btn {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; padding: 4px; color: var(--muted);
+  }
+  .eye-btn:hover { color: var(--text); }
+  .clear-btn {
+    background: var(--input-bg); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 8px; padding: 0 12px; cursor: pointer; font-size: 13px;
+  }
+  .clear-btn:hover { color: var(--danger); border-color: var(--danger); }
+  .token-msg { color: var(--danger); font-size: 12px; margin-top: 6px; display: none; }
+  .token-msg.show { display: block; }
+  .checks { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
+  .checks label { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 13px; }
+  .checks input { width: auto; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 14px; }
+  .grid4 > div { margin-bottom: 12px; min-width: 0; }
+  .grid4 .span2 { grid-column: span 2; }
+  @media (max-width: 560px) { .grid4 { grid-template-columns: 1fr; } .grid4 .span2 { grid-column: auto; } }
+  .hidden { display: none !important; }
+  dialog {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; max-width: 440px; width: calc(100% - 32px);
+  }
+  dialog::backdrop { background: rgba(0, 0, 0, .6); }
+  dialog p { margin: 0 0 18px; font-size: 14px; line-height: 1.5; }
+  .dlg-btns { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+  .dlg-btns button.run { width: auto; padding: 9px 16px; font-size: 14px; }
+  .custom-fields .row > div { min-width: 200px; }
+  .hint { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  button.run {
+    background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    padding: 12px 20px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%;
+  }
+  button.run:hover { background: var(--accent-hover); }
+  button.run:disabled { background: #3a3f4b; cursor: not-allowed; }
+  button.secondary {
+    background: var(--input-bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px; font-size: 13px; cursor: pointer;
+  }
+  button.secondary:hover { border-color: var(--accent); }
+  .status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+  .status.error { color: var(--danger); }
+  .status.ok { color: var(--ok); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+  td a { color: var(--accent); text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+  .table-wrap { overflow-x: auto; max-height: 60vh; overflow-y: auto; }
+  .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
+</style>
+<script src="xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>Prospectos Maps Radio</h1>
+  <div class="sub" data-i18n="subtitle"></div>
+
+  <div class="panel">
+    <h2 data-i18n="apiSectionTitle"></h2>
+    <div class="token-row">
+      <div class="field-wrap">
+        <input id="token" type="password" data-i18n-placeholder="tokenPlaceholder" autocomplete="off">
+        <button class="eye-btn" id="toggleEye" type="button" data-i18n-title="eyeTitle">👁</button>
+      </div>
+      <button class="clear-btn" id="clearToken" type="button" data-i18n="clearBtn"></button>
+    </div>
+    <div class="token-msg" id="tokenMsg" data-i18n="tokenMsg"></div>
+  </div>
+
+  <div class="panel">
+    <h2 data-i18n="searchSectionTitle"></h2>
+    <div class="row">
+      <div>
+        <label data-i18n="queryLabel"></label>
+        <input id="query" type="text" data-i18n-placeholder="queryPlaceholder">
+      </div>
+      <div>
+        <label data-i18n="postalLabel"></label>
+        <input id="postalCode" type="text" data-i18n-placeholder="postalPlaceholder">
+      </div>
+      <div>
+        <label data-i18n="countryLabel"></label>
+        <input id="countryCode" type="text" value="mx" maxlength="2">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label data-i18n="maxPlacesLabel"></label>
+        <input id="maxPlaces" type="number" value="20" min="1" max="300">
+      </div>
+      <div>
+        <label data-i18n="languageLabel"></label>
+        <select id="language">
+          <option value="es">Español Mexicano</option>
+          <option value="en">English USA</option>
+        </select>
+      </div>
+    </div>
+    <div class="checks">
+      <label><input id="skipClosed" type="checkbox" checked> <span data-i18n="skipClosedLabel"></span></label>
+      <label><input id="detailPage" type="checkbox" checked> <span data-i18n="detailPageLabel"></span></label>
+      <label><input id="contacts" type="checkbox" checked> <span data-i18n="contactsLabel"></span></label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 data-i18n="filtersSectionTitle"></h2>
+    <div class="grid4">
+      <div class="span2">
+        <label data-i18n="addressLabel"></label>
+        <input id="address" type="text" data-i18n-placeholder="addressPlaceholder">
+      </div>
+      <div>
+        <label data-i18n="cityLabel"></label>
+        <input id="city" type="text" data-i18n-placeholder="cityPlaceholder">
+      </div>
+      <div>
+        <label data-i18n="radiusLabel"></label>
+        <input id="radiusKm" type="number" value="2" min="0.1" max="50" step="0.1">
+      </div>
+      <div>
+        <label data-i18n="minStarsLabel"></label>
+        <select id="minStars">
+          <option value="" data-i18n="anyOption"></option>
+          <option value="two">2+</option>
+          <option value="twoAndHalf">2.5+</option>
+          <option value="three">3+</option>
+          <option value="threeAndHalf">3.5+</option>
+          <option value="four">4+</option>
+          <option value="fourAndHalf">4.5+</option>
+        </select>
+      </div>
+      <div>
+        <label data-i18n="minReviewsLabel"></label>
+        <input id="minReviews" type="number" value="0" min="0">
+      </div>
+      <div>
+        <label data-i18n="websiteLabel"></label>
+        <select id="website">
+          <option value="allPlaces" data-i18n="websiteAll"></option>
+          <option value="withWebsite" data-i18n="websiteWith"></option>
+          <option value="withoutWebsite" data-i18n="websiteWithout"></option>
+        </select>
+      </div>
+    </div>
+    <div class="checks">
+      <label><input id="needPhone" type="checkbox"> <span data-i18n="needPhoneLabel"></span></label>
+      <label><input id="needEmail" type="checkbox"> <span data-i18n="needEmailLabel"></span></label>
+    </div>
+  </div>
+
+  <div class="panel custom-fields">
+    <h2 data-i18n="customSectionTitle"></h2>
+    <div class="hint" data-i18n="customHint"></div>
+    <div class="row">
+      <div>
+        <label data-i18n="custom1KeyLabel"></label>
+        <input id="custom1Key" type="text" data-i18n-placeholder="custom1KeyPlaceholder">
+      </div>
+      <div>
+        <label data-i18n="valLabel"></label>
+        <input id="custom1Val" type="text" data-i18n-placeholder="custom1ValPlaceholder">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label data-i18n="custom2KeyLabel"></label>
+        <input id="custom2Key" type="text" data-i18n-placeholder="custom2KeyPlaceholder">
+      </div>
+      <div>
+        <label data-i18n="valLabel"></label>
+        <input id="custom2Val" type="text" data-i18n-placeholder="custom2ValPlaceholder">
+      </div>
+    </div>
+  </div>
+
+  <dialog id="cpDialog">
+    <p id="cpDialogMsg"></p>
+    <div class="dlg-btns">
+      <button class="secondary" id="cpFix" type="button" data-i18n="cpFixBtn"></button>
+      <button class="run" id="cpOk" type="button" data-i18n="cpOkBtn" autofocus></button>
+    </div>
+  </dialog>
+  <dialog id="noCpDialog">
+    <p data-i18n="noCpMsg"></p>
+    <div class="dlg-btns">
+      <button class="secondary" id="noCpCancel" type="button" data-i18n="cancelBtn"></button>
+    </div>
+  </dialog>
+
+  <button class="run" id="runBtn" data-i18n="runBtn"></button>
+  <div class="status" id="status"></div>
+
+  <div class="panel" id="resultsPanel" style="display:none; margin-top:16px;">
+    <div class="results-header">
+      <h2 style="margin:0;" data-i18n="resultsTitle"></h2>
+      <button class="secondary" id="downloadXlsx" data-i18n="downloadXlsx"></button>
+    </div>
+    <div class="table-wrap">
+      <table id="resultsTable">
+        <thead><tr>
+          <th data-i18n="thNombre"></th><th data-i18n="thCategoria"></th><th data-i18n="thDireccion"></th><th>WhatsApp</th>
+          <th>Email</th><th data-i18n="thWeb"></th><th>Facebook</th><th>Instagram</th><th data-i18n="thRating"></th><th data-i18n="thResenas"></th><th data-i18n="thCp"></th><th data-i18n="thDist"></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const ACTOR = 'compass~crawler-google-places';
+const API = 'https://api.apify.com/v2';
+
+const STR = {
+  es: {
+    subtitle: "Genera listas de prospectos de negocios desde Google Maps (Apify) por código postal o por kilómetros alrededor de una dirección de referencia.",
+    apiSectionTitle: "API de Apify",
+    tokenPlaceholder: "Ingresar API personal de Apify",
+    eyeTitle: "Mostrar/ocultar",
+    clearBtn: "Borrar",
+    tokenMsg: "Ingresar API personal de Apify",
+    searchSectionTitle: "Búsqueda",
+    addressLabel: "Dirección de referencia (calle, número exterior, colonia)",
+    addressPlaceholder: "ej. Av. Patria 1000, Jardines Universidad",
+    cityLabel: "Ciudad",
+    cityPlaceholder: "ej. Zapopan",
+    radiusLabel: "Rating mínimo en kilómetros",
+    filtersSectionTitle: "Filtros",
+    minStarsLabel: "Estrellas mínimas",
+    anyOption: "Cualquiera",
+    minReviewsLabel: "Reseñas mínimas",
+    websiteLabel: "Sitio web",
+    websiteAll: "Con o sin sitio web",
+    websiteWith: "Solo con sitio web",
+    websiteWithout: "Solo sin sitio web",
+    needPhoneLabel: "Solo con teléfono",
+    needEmailLabel: "Solo con email",
+    thWeb: "Sitio web",
+    statusGeocoding: "Ubicando la dirección...",
+    statusGeocoded: (a) => `Centro: ${a}`,
+    errAddress: "Con dirección de referencia se necesita giro/categoría, código postal y kilómetros.",
+    errGeocode: "No se encontró la dirección de referencia. Revisa calle, número, colonia, ciudad y código postal.",
+    cpAssigned: (cp, place) => `Se asignó un solo Código Postal que corresponde a esta dirección: ${cp}${place ? ` (${place})` : ''}, por favor valídelo.`,
+    cityChanged: (place, typed, city) => `Atención: la dirección se ubicó en ${place}, no en ${typed}. Se cambió la ciudad a ${city}.`,
+    cpOkBtn: "CP correcto",
+    cpFixBtn: "Corregir CP",
+    noCpMsg: 'La dirección reportada no corresponde a ningún Código Postal, favor de anotarlo por su cuenta en el campo "Código postal (separa varios con coma)".',
+    cancelBtn: "Cancelar",
+    statusFiltered: (n, total) => `Listo: ${n} prospectos (de ${total} encontrados, ${total - n} descartados por los filtros).`,
+    limitReached: (km, radius) => `Se llenó el límite de resultados a ${km} km del centro, antes de cubrir los ${radius} km. Para llegar más lejos, sube el "Límite de resultados".`,
+    queryLabel: "Giro / categoría (separa varias con coma)",
+    queryPlaceholder: "ej. restaurantes, dentista",
+    postalLabel: "Código postal (separa varios con coma)",
+    postalPlaceholder: "ej. 45020, 45030",
+    countryLabel: "País (ISO 2 letras)",
+    maxPlacesLabel: "Límite de resultados",
+    languageLabel: "Idioma",
+    skipClosedLabel: "Omitir cerrados",
+    detailPageLabel: "Detalle por lugar (precio, etc.)",
+    contactsLabel: "Contactos (email/redes)",
+    customSectionTitle: "Campos personalizados (opcional, se agregan tal cual al input del actor)",
+    customHint: 'Nota: el "nombre del campo" debe ser el parámetro exacto que reconoce el actor de Apify (siempre en inglés, como en su documentación) — es un identificador técnico, no texto libre. El "valor" sí puede escribirse en español mexicano cuando el campo lo acepte.',
+    custom1KeyLabel: "Nombre del campo 1",
+    custom1KeyPlaceholder: "ej. número máximo de reseñas a extraer",
+    custom1ValPlaceholder: "ej. 10",
+    custom2KeyLabel: "Nombre del campo 2",
+    custom2KeyPlaceholder: "ej. número máximo de imágenes por lugar",
+    custom2ValPlaceholder: "ej. 5",
+    valLabel: "Valor",
+    runBtn: "Buscar prospectos",
+    resultsTitle: "Resultados",
+    downloadXlsx: "Descargar Excel (.xlsx)",
+    thNombre: "Nombre", thCategoria: "Categoría", thDireccion: "Dirección",
+    thRating: "Rating", thResenas: "Reseñas", thCp: "CP", thDist: "Distancia (km)",
+    emptyResults: "Sin resultados.",
+    statusStarting: "Iniciando búsqueda en Apify...",
+    statusRunning: (s, e) => `Corriendo... (${e}s, estado: ${s})`,
+    statusDownloading: "Descargando resultados...",
+    statusDone: (n) => `Listo: ${n} prospectos encontrados.`,
+    statusCpProgress: (i, n, cp) => `CP ${i}/${n} (${cp})`,
+    errMissing: "Falta giro/categoría o código postal.",
+    errRunStatus: (s) => `El run terminó con estado: ${s}`,
+    errTimeout: "Tiempo de espera excedido (10 min).",
+    errPrefix: "Error: ",
+    whatsappHint: "Si sale la vista previa del archivo, toca el ícono de compartir (cuadrito con flecha hacia arriba) y elige WhatsApp para mandarlo directo a cualquier contacto.",
+    xlsxHeaders: { nombre: 'nombre', categoria: 'categoria', direccion: 'direccion', telefono: 'telefono', whatsapp: 'whatsapp', email: 'email', web: 'sitio web', facebook: 'facebook', instagram: 'instagram', rating: 'rating', resenas: 'resenas', cp: 'cp', distancia: 'distancia (km)' }
+  },
+  en: {
+    subtitle: "Generate business prospect lists from Google Maps (Apify) by ZIP code or by radius around an address.",
+    apiSectionTitle: "Apify API",
+    tokenPlaceholder: "Enter your personal Apify API token",
+    eyeTitle: "Show/hide",
+    clearBtn: "Clear",
+    tokenMsg: "Enter your personal Apify API token",
+    searchSectionTitle: "Search",
+    addressLabel: "Reference address (street, number, neighborhood)",
+    addressPlaceholder: "e.g. 350 5th Ave, Midtown",
+    cityLabel: "City",
+    cityPlaceholder: "e.g. New York",
+    radiusLabel: "Radius in kilometers",
+    filtersSectionTitle: "Filters",
+    minStarsLabel: "Minimum stars",
+    anyOption: "Any",
+    minReviewsLabel: "Minimum reviews",
+    websiteLabel: "Website",
+    websiteAll: "With or without website",
+    websiteWith: "Only with website",
+    websiteWithout: "Only without website",
+    needPhoneLabel: "Only with phone",
+    needEmailLabel: "Only with email",
+    thWeb: "Website",
+    statusGeocoding: "Locating the address...",
+    statusGeocoded: (a) => `Center: ${a}`,
+    errAddress: "A reference address needs category, ZIP code and kilometers.",
+    errGeocode: "Reference address not found. Check street, number, neighborhood, city and ZIP code.",
+    cpAssigned: (cp, place) => `A single ZIP code matching this address was assigned: ${cp}${place ? ` (${place})` : ''}. Please validate it.`,
+    cityChanged: (place, typed, city) => `Note: the address was located in ${place}, not in ${typed}. The city was changed to ${city}.`,
+    cpOkBtn: "ZIP is correct",
+    cpFixBtn: "Fix ZIP",
+    noCpMsg: 'The address entered does not match any ZIP code. Please type it yourself in the "ZIP code (comma-separate for several)" field.',
+    cancelBtn: "Cancel",
+    statusFiltered: (n, total) => `Done: ${n} prospects (of ${total} found, ${total - n} dropped by filters).`,
+    limitReached: (km, radius) => `The result limit was reached at ${km} km from the center, before covering the ${radius} km. To reach farther, raise the "Result limit".`,
+    queryLabel: "Category (comma-separate for several)",
+    queryPlaceholder: "e.g. restaurants, dentist",
+    postalLabel: "ZIP code (comma-separate for several)",
+    postalPlaceholder: "e.g. 45020, 45030",
+    countryLabel: "Country (2-letter ISO)",
+    maxPlacesLabel: "Result limit",
+    languageLabel: "Language",
+    skipClosedLabel: "Skip closed places",
+    detailPageLabel: "Place detail (price, etc.)",
+    contactsLabel: "Contacts (email/social)",
+    customSectionTitle: "Custom fields (optional, added as-is to the actor's input)",
+    customHint: 'Note: the "field name" must be the exact parameter recognized by the Apify actor (always in English, as in its docs) — it\'s a technical identifier, not free text. The "value" can be plain text when the field accepts it.',
+    custom1KeyLabel: "Field name 1",
+    custom1KeyPlaceholder: "e.g. maxReviews (max reviews to extract)",
+    custom1ValPlaceholder: "e.g. 10",
+    custom2KeyLabel: "Field name 2",
+    custom2KeyPlaceholder: "e.g. maxImages (max images per place)",
+    custom2ValPlaceholder: "e.g. 5",
+    valLabel: "Value",
+    runBtn: "Search prospects",
+    resultsTitle: "Results",
+    downloadXlsx: "Download Excel (.xlsx)",
+    thNombre: "Name", thCategoria: "Category", thDireccion: "Address",
+    thRating: "Rating", thResenas: "Reviews", thCp: "ZIP", thDist: "Distance (km)",
+    emptyResults: "No results.",
+    statusStarting: "Starting search on Apify...",
+    statusRunning: (s, e) => `Running... (${e}s, status: ${s})`,
+    statusDownloading: "Downloading results...",
+    statusDone: (n) => `Done: ${n} prospects found.`,
+    statusCpProgress: (i, n, cp) => `ZIP ${i}/${n} (${cp})`,
+    errMissing: "Missing category or ZIP code.",
+    errRunStatus: (s) => `Run finished with status: ${s}`,
+    errTimeout: "Timeout exceeded (10 min).",
+    errPrefix: "Error: ",
+    whatsappHint: "If a file preview shows up, tap the share icon (square with an arrow up) and pick WhatsApp to send it straight to any contact.",
+    xlsxHeaders: { nombre: 'name', categoria: 'category', direccion: 'address', telefono: 'phone', whatsapp: 'whatsapp', email: 'email', web: 'website', facebook: 'facebook', instagram: 'instagram', rating: 'rating', resenas: 'reviews', cp: 'zip', distancia: 'distance (km)' }
+  }
+};
+
+let lang = 'es'; // Español Mexicano siempre es el idioma inicial al abrir la app
+
+function t(key, ...args) {
+  const v = STR[lang][key];
+  return typeof v === 'function' ? v(...args) : v;
+}
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  languageEl.value = lang;
+}
+
+const tokenEl = document.getElementById('token');
+const tokenMsg = document.getElementById('tokenMsg');
+const statusEl = document.getElementById('status');
+const runBtn = document.getElementById('runBtn');
+const resultsPanel = document.getElementById('resultsPanel');
+const resultsBody = document.querySelector('#resultsTable tbody');
+const languageEl = document.getElementById('language');
+const countryEl = document.getElementById('countryCode');
+
+let lastRows = [];
+
+applyLang();
+
+languageEl.addEventListener('change', () => {
+  lang = languageEl.value; // cambio válido solo durante esta sesión; al reabrir la app vuelve a Español Mexicano
+  countryEl.value = lang === 'en' ? 'us' : 'mx';
+  applyLang();
+});
+
+const addressEl = document.getElementById('address');
+const postalEl = document.getElementById('postalCode');
+function currentMode() { return addressEl.value.trim() ? 'radius' : 'cp'; }
+// Con dirección de referencia solo vale el primer CP: se deja ese y se quitan los demás.
+function keepFirstCp() {
+  if (currentMode() === 'radius') postalEl.value = postalEl.value.split(',')[0].trim();
+}
+const cpDialog = document.getElementById('cpDialog');
+const noCpDialog = document.getElementById('noCpDialog');
+const cityEl = document.getElementById('city');
+function fullAddress(...extra) {
+  return [addressEl.value, cityEl.value, ...extra].map(x => (x || '').trim()).filter(Boolean).join(', ');
+}
+// 'change' dispara al salir del campo solo si el texto cambió: justo "escrito y desenfocado".
+async function autoCp() {
+  if (!addressEl.value.trim() || !cityEl.value.trim()) return; // el CP se calcula hasta tener dirección y ciudad
+  const typedCity = cityEl.value.trim();
+  let found = { cp: '' };
+  try { found = await lookupPostcode(addressEl.value.trim(), typedCity, countryEl.value.trim().toLowerCase() || 'mx'); } catch (e) {}
+  if (found.cp) {
+    const place = [found.city, found.state].filter(Boolean).join(', ');
+    postalEl.value = found.cp;
+    let msg = t('cpAssigned', found.cp, place);
+    if (found.cityChanged) {
+      cityEl.value = found.city; // asignar por código no dispara 'change', así que no se repite la búsqueda
+      msg += ' ' + t('cityChanged', place, typedCity, found.city);
+    }
+    document.getElementById('cpDialogMsg').textContent = msg;
+    cpDialog.showModal();
+  } else {
+    postalEl.value = ''; // el CP anterior ya no corresponde a esta dirección
+    noCpDialog.showModal();
+  }
+}
+addressEl.addEventListener('change', autoCp);
+cityEl.addEventListener('change', autoCp);
+document.getElementById('cpOk').addEventListener('click', () => cpDialog.close());
+document.getElementById('cpFix').addEventListener('click', () => { cpDialog.close(); postalEl.focus(); postalEl.select(); });
+document.getElementById('noCpCancel').addEventListener('click', () => { noCpDialog.close(); postalEl.focus(); });
+postalEl.addEventListener('change', keepFirstCp);
+
+// --- token persistence ---
+const savedToken = localStorage.getItem('apify_token');
+if (savedToken) tokenEl.value = savedToken;
+tokenEl.addEventListener('input', () => {
+  localStorage.setItem('apify_token', tokenEl.value);
+  if (tokenEl.value.trim()) tokenMsg.classList.remove('show');
+});
+
+document.getElementById('toggleEye').addEventListener('click', () => {
+  tokenEl.type = tokenEl.type === 'password' ? 'text' : 'password';
+});
+
+document.getElementById('clearToken').addEventListener('click', () => {
+  tokenEl.value = '';
+  localStorage.removeItem('apify_token');
+  tokenEl.focus();
+});
+
+function setStatus(msg, kind) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (kind ? ' ' + kind : '');
+}
+
+function toWhatsapp(phone) {
+  const digits = (phone || '').replace(/[^\d]/g, '');
+  return digits ? 'https://wa.me/' + digits : '';
+}
+
+function coerce(v) {
+  if (v === '') return undefined;
+  try { return JSON.parse(v); } catch (e) { return v; }
+}
+
+async function apiFetch(url, opts) {
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    let detail = '';
+    try { detail = (await res.json()).error?.message || ''; } catch (e) {}
+    throw new Error('HTTP ' + res.status + (detail ? ': ' + detail : ''));
+  }
+  return res.json();
+}
+
+const NOMINATIM = 'https://nominatim.openstreetmap.org';
+
+// Distancia en km entre dos puntos {lat, lng} (fórmula de haversine).
+function distanceKm(a, b) {
+  const rad = x => x * Math.PI / 180;
+  const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
+async function geocode(address, country) {
+  const url = `${NOMINATIM}/search?format=json&limit=1&addressdetails=1&accept-language=${lang}&countrycodes=${encodeURIComponent(country)}&q=${encodeURIComponent(address)}`;
+  const res = await fetch(url);
+  const data = res.ok ? await res.json() : [];
+  if (!data.length) throw new Error(t('errGeocode'));
+  const a = data[0].address || {};
+  return {
+    lat: Number(data[0].lat), lng: Number(data[0].lon), label: data[0].display_name, postcode: a.postcode || '',
+    city: a.city || a.town || a.village || a.municipality || a.county || '', state: a.state || ''
+  };
+}
+
+// CP de dirección + ciudad. Si con esa ciudad no aparece (p. ej. la dirección es de un municipio
+// vecino), reintenta solo con la dirección y marca cityChanged para avisar y corregir la ciudad.
+// Si el resultado no trae CP, se toma el del punto por geocodificación inversa.
+async function lookupPostcode(address, city, country) {
+  let c, cityChanged = false;
+  try {
+    c = await geocode(`${address}, ${city}`, country);
+  } catch (e) {
+    c = await geocode(address, country);
+    cityChanged = !!c.city;
+  }
+  let cp = c.postcode;
+  if (!cp) {
+    const res = await fetch(`${NOMINATIM}/reverse?format=json&lat=${c.lat}&lon=${c.lng}`);
+    cp = res.ok ? ((await res.json()).address?.postcode || '') : '';
+  }
+  return { cp: cp.split(/[;,]/)[0].trim(), city: c.city, state: c.state, cityChanged };
+}
+
+async function runActor(token, input, progressLabel) {
+  const run = await apiFetch(
+    `${API}/acts/${ACTOR}/runs?token=${encodeURIComponent(token)}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }
+  );
+  const runId = run.data.id;
+  let status = run.data.status;
+  let datasetId = run.data.defaultDatasetId;
+  let statusMessage = run.data.statusMessage || '';
+  let elapsed = 0;
+
+  while (!['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes(status)) {
+    setStatus(`${progressLabel} — ${t('statusRunning', status, elapsed)}`);
+    const check = await apiFetch(`${API}/actor-runs/${runId}?token=${encodeURIComponent(token)}&waitForFinish=15`);
+    status = check.data.status;
+    datasetId = check.data.defaultDatasetId;
+    statusMessage = check.data.statusMessage || statusMessage;
+    elapsed += 15;
+    if (elapsed > 600) throw new Error(t('errTimeout'));
+  }
+
+  if (status !== 'SUCCEEDED') throw new Error(`${progressLabel}: ${t('errRunStatus', status)}${statusMessage ? ' — ' + statusMessage : ''}`);
+
+  setStatus(`${progressLabel} — ${t('statusDownloading')}`);
+  return apiFetch(`${API}/datasets/${datasetId}/items?token=${encodeURIComponent(token)}&clean=true&format=json`);
+}
+
+async function runSearch() {
+  const token = tokenEl.value.trim();
+  if (!token) {
+    tokenMsg.classList.add('show');
+    tokenEl.focus();
+    return;
+  }
+  tokenMsg.classList.remove('show');
+
+  keepFirstCp();
+  const mode = currentMode();
+  const queryRaw = document.getElementById('query').value.trim();
+  const postalCodes = document.getElementById('postalCode').value.split(',').map(s => s.trim()).filter(Boolean);
+  const address = document.getElementById('address').value.trim();
+  const radiusKm = Number(document.getElementById('radiusKm').value);
+  if (mode === 'cp' && (!queryRaw || !postalCodes.length)) {
+    setStatus(t('errMissing'), 'error');
+    return;
+  }
+  if (mode === 'radius' && (!queryRaw || !postalCodes.length || !(radiusKm > 0))) {
+    setStatus(t('errAddress'), 'error');
+    return;
+  }
+
+  const baseInput = {
+    searchStringsArray: queryRaw.split(',').map(s => s.trim()).filter(Boolean),
+    countryCode: countryEl.value.trim().toLowerCase() || (lang === 'en' ? 'us' : 'mx'),
+    maxCrawledPlacesPerSearch: Number(document.getElementById('maxPlaces').value) || 20,
+    language: lang,
+    skipClosedPlaces: document.getElementById('skipClosed').checked,
+    scrapePlaceDetailPage: document.getElementById('detailPage').checked,
+    scrapeContacts: document.getElementById('contacts').checked,
+    website: document.getElementById('website').value
+  };
+  const minStars = document.getElementById('minStars').value;
+  if (minStars) baseInput.placeMinimumStars = minStars;
+
+  for (const [keyId, valId] of [['custom1Key', 'custom1Val'], ['custom2Key', 'custom2Val']]) {
+    const key = document.getElementById(keyId).value.trim();
+    const val = document.getElementById(valId).value.trim();
+    if (key && val !== '') baseInput[key] = coerce(val);
+  }
+
+  runBtn.disabled = true;
+  resultsPanel.style.display = 'none';
+  setStatus(t('statusStarting'));
+
+  try {
+    const allItems = [];
+    let center = null;
+    if (mode === 'radius') {
+      setStatus(t('statusGeocoding'));
+      const c = center = await geocode(fullAddress(postalCodes[0]), baseInput.countryCode);
+      const { countryCode, ...radiusInput } = baseInput; // el área la define el círculo, no el país
+      radiusInput.customGeolocation = { type: 'Point', coordinates: [c.lng, c.lat], radiusKm };
+      allItems.push(...await runActor(token, radiusInput, `${t('statusGeocoded', c.label)} (${radiusKm} km)`));
+    } else {
+      for (let i = 0; i < postalCodes.length; i++) {
+        const progressLabel = postalCodes.length > 1 ? t('statusCpProgress', i + 1, postalCodes.length, postalCodes[i]) : postalCodes[i];
+        allItems.push(...await runActor(token, { ...baseInput, postalCode: postalCodes[i] }, progressLabel));
+      }
+    }
+
+    const minReviews = Number(document.getElementById('minReviews').value) || 0;
+    const needPhone = document.getElementById('needPhone').checked;
+    const needEmail = document.getElementById('needEmail').checked;
+
+    lastRows = allItems.map(it => ({
+      nombre: it.title || '',
+      categoria: it.categoryName || '',
+      direccion: it.address || '',
+      telefono: it.phone || '',
+      whatsapp: toWhatsapp(it.phone),
+      email: (it.emails && it.emails[0]) || '',
+      web: it.website || '',
+      facebook: (it.facebooks && it.facebooks[0]) || '',
+      instagram: (it.instagrams && it.instagrams[0]) || '',
+      rating: it.totalScore ?? '',
+      resenas: it.reviewsCount ?? '',
+      cp: it.postalCode || '',
+      distancia: center && it.location ? Math.round(distanceKm(center, it.location) * 100) / 100 : ''
+    })).filter(r => (Number(r.resenas) || 0) >= minReviews && (!needPhone || r.telefono) && (!needEmail || r.email));
+    if (center) lastRows.sort((a, b) => (a.distancia === '' ? 1e9 : a.distancia) - (b.distancia === '' ? 1e9 : b.distancia));
+
+    renderTable(lastRows);
+    let msg = lastRows.length === allItems.length ? t('statusDone', lastRows.length) : t('statusFiltered', lastRows.length, allItems.length);
+    // El actor para al llenar el límite: si se llenó, el radio no se cubrió completo.
+    const limitHit = allItems.length >= baseInput.maxCrawledPlacesPerSearch * baseInput.searchStringsArray.length;
+    if (center && limitHit && lastRows.length) {
+      const reached = Math.max(...lastRows.map(r => Number(r.distancia) || 0));
+      msg += ' ' + t('limitReached', reached.toFixed(2), radiusKm);
+    }
+    setStatus(msg, 'ok');
+  } catch (err) {
+    setStatus(t('errPrefix') + err.message, 'error');
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+function renderTable(rows) {
+  resultsBody.innerHTML = '';
+  if (!rows.length) {
+    resultsPanel.style.display = 'block';
+    resultsBody.innerHTML = `<tr><td colspan="12" class="empty">${t('emptyResults')}</td></tr>`;
+    return;
+  }
+  for (const r of rows) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${esc(r.nombre)}</td>
+      <td>${esc(r.categoria)}</td>
+      <td>${esc(r.direccion)}</td>
+      <td>${r.whatsapp ? `<a href="${r.whatsapp}" target="_blank">${esc(r.telefono)}</a>` : esc(r.telefono)}</td>
+      <td>${esc(r.email)}</td>
+      <td>${r.web ? `<a href="${esc(r.web)}" target="_blank">Web</a>` : ''}</td>
+      <td>${r.facebook ? `<a href="${esc(r.facebook)}" target="_blank">FB</a>` : ''}</td>
+      <td>${r.instagram ? `<a href="${esc(r.instagram)}" target="_blank">IG</a>` : ''}</td>
+      <td>${esc(String(r.rating))}</td>
+      <td>${esc(String(r.resenas))}</td>
+      <td>${esc(r.cp)}</td>
+      <td>${esc(String(r.distancia))}</td>`;
+    resultsBody.appendChild(tr);
+  }
+  resultsPanel.style.display = 'block';
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s ?? '';
+  return d.innerHTML;
+}
+
+function downloadXlsx() {
+  if (!lastRows.length) return;
+  const keys = ['nombre', 'categoria', 'direccion', 'telefono', 'whatsapp', 'email', 'web', 'facebook', 'instagram', 'rating', 'resenas', 'cp', 'distancia'];
+  const headerLabels = STR[lang].xlsxHeaders;
+  const rows = [keys.map(k => headerLabels[k])];
+  for (const r of lastRows) rows.push(keys.map(k => r[k] ?? ''));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [38, 23, 65, 15, 26, 26, 30, 26, 26, 8, 8, 8, 14].map(wch => ({ wch }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Prospectos');
+  const tag = currentMode() === 'radius' ? `radio_${document.getElementById('radiusKm').value}km` : (document.getElementById('postalCode').value.trim() || 'export');
+  XLSX.writeFile(wb, `prospectos_${tag}.xlsx`);
+}
+
+function downloadAndPromptShare() {
+  if (!lastRows.length) return;
+  downloadXlsx();
+  setStatus(t('whatsappHint'), 'ok');
+}
+
+runBtn.addEventListener('click', runSearch);
+document.getElementById('downloadXlsx').addEventListener('click', downloadAndPromptShare);
+</script>
+</body>
+</html>

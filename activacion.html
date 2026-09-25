@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" href="icono.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Maps Radio">
+<script src="nacl-fast.min.js"></script>
+<script src="licencia-web.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activar Prospectos Maps Radio</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --border: #2a2e38; --text: #e7e9ee;
+    --muted: #9aa1b0; --accent: #4f8cff; --accent-hover: #6ea0ff;
+    --danger: #ff5d5d; --ok: #35c48c; --input-bg: #10131a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--text); padding: 40px 16px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+  .panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; }
+  .id-row { display: flex; gap: 8px; align-items: center; }
+  .id { flex: 1; font-family: Consolas, monospace; font-size: 22px; letter-spacing: .08em; padding: 8px 12px;
+        background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; user-select: all; white-space: nowrap; }
+  @media (max-width: 480px) { .id { font-size: 17px; letter-spacing: .03em; padding: 8px 10px; } }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 10px; line-height: 1.5; }
+  textarea { width: 100%; min-height: 110px; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+             background: var(--input-bg); color: var(--text); font-family: Consolas, monospace; font-size: 13px; resize: vertical; }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  button { border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .secondary { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); padding: 10px 14px; }
+  .secondary:hover { border-color: var(--accent); }
+  .run { background: var(--accent); color: #fff; border: none; padding: 12px 20px; font-size: 15px; font-weight: 600; width: 100%; margin-top: 12px; }
+  .run:hover { background: var(--accent-hover); }
+  .run:disabled { background: #3a3f4b; cursor: not-allowed; }
+  .msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .msg.error { color: var(--danger); }
+  .msg.ok { color: var(--ok); }
+  .aviso { background: #2a1d1d; border: 1px solid var(--danger); color: #ffb3b3; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Prospectos Maps Radio</h1>
+  <div class="sub">Para usar la app necesitas activarla con una clave de licencia.</div>
+
+  <div class="aviso" id="aviso" hidden></div>
+
+  <div class="panel">
+    <h2>1. ID de este equipo</h2>
+    <div class="id-row">
+      <div class="id" id="equipo">…</div>
+      <button class="secondary" id="copiar" type="button">Copiar</button>
+    </div>
+    <div class="hint">Envía este ID a tu proveedor (por WhatsApp o correo) para recibir tu clave. Cada computadora tiene un ID distinto.</div>
+  </div>
+
+  <div class="panel">
+    <h2>2. Clave de licencia</h2>
+    <textarea id="clave" placeholder="Pega aquí la clave completa (empieza con PMR-)" spellcheck="false"></textarea>
+    <button class="run" id="activar" type="button">Activar</button>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+
+// Web (iPhone/navegador): PMR viene de licencia-web.js. Escritorio (.exe): la API la pone pywebview.
+const WEB = !!window.PMR;
+function mostrar(info) {
+  $('equipo').textContent = info.equipo;
+  if (info.mensaje) { $('aviso').textContent = info.mensaje; $('aviso').hidden = false; }
+}
+if (WEB) mostrar({ equipo: PMR.idTexto(), mensaje: PMR.estado().mensaje });
+else window.addEventListener('pywebviewready', async () => mostrar(await pywebview.api.info()));
+
+$('copiar').addEventListener('click', async () => {
+  await navigator.clipboard.writeText($('equipo').textContent);
+  $('copiar').textContent = 'Copiado';
+  setTimeout(() => { $('copiar').textContent = 'Copiar'; }, 1500);
+});
+
+$('activar').addEventListener('click', async () => {
+  const clave = $('clave').value.trim();
+  if (!clave) { $('msg').textContent = 'Pega tu clave de licencia.'; $('msg').className = 'msg error'; return; }
+  $('activar').disabled = true;
+  const r = WEB ? PMR.activar(clave) : await pywebview.api.activar(clave);
+  $('activar').disabled = false;
+  $('msg').textContent = r.mensaje;
+  $('msg').className = 'msg ' + (r.ok ? 'ok' : 'error');
+  if (r.ok) setTimeout(() => { location.href = 'index.html'; }, 1200);
+});
+</script>
+</body>
+</html>
